@@ -1,0 +1,12 @@
+配置信息:
+	1, 服务器端启动时需先将配置信息读到内存中.
+	2, 其他位置通过调用 cojo_config 中函数取得相应配置信息.
+	
+源码实现:
+
+在cojo_config.h中
+#define COJO_DEFAULT_CONFIG_FILENAME "cojo_config"
+
+char *cojo_get_userdb_filename(void);
+
+在cojo_config.c中实现函数.

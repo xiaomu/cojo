@@ -1,0 +1,21 @@
+消息:
+
+源码实现:
+
+在cojo_msg.h中
+
+struct cojo_handle_msg
+{
+	char id_from[];
+	char id_to[];
+	enum encode_type;
+}
+
+typedef struct cojo_handle_msg cojo_handle_msg_t;
+
+int cojo_send_msg(int sock_fd, char *msg);
+char * cojo_recv_msg(int sock_fd);
+
+
+	
+	
