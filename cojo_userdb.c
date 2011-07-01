@@ -57,10 +57,30 @@ cojo_user_t *cojo_get_user_byId(const char *cojo_user_id)
 				cojo_log("malloc failed in cojo_userdb.c fcojo_get_user_byId().\n");
 				return NULL;
 			}
+			memset(user, '\0', sizeof(user));
 
+			int i, j;
+			
 			strncpy(user->cojo_user_id, cojo_user_id, COJO_USER_ID_LEN);	
-			strncpy(user->cojo_user_name, &buf[COJO_USER_ID_LEN +1], COJO_USER_PWD_LEN);
-			strncpy(user->cojo_user_pwd, &buf[COJO_USER_ID_LEN + COJO_USER_PWD_LEN +2], COJO_USER_PWD_LEN);
+			
+			i = COJO_USER_ID_LEN;
+			j = ++i;
+			while((buf[j] != '\t')&&(j<COJO_USER_TOTAL_LEN)&&(buf[j] != '\n'))
+				j++;
+			strncpy(user->cojo_user_pwd, &buf[i+1], j-i-1);
+			
+			i = j;
+			j = ++i;
+			while((buf[j] != '\t')&&(j<COJO_USER_TOTAL_LEN)&&(buf[j] != '\n'))
+				j++;
+			strncpy(user->cojo_user_name, &buf[i +1], j-i-1);
+
+			i = j;
+			j = ++i; 
+			while((buf[j] != '\t')&&(j<COJO_USER_TOTAL_LEN)&&(buf[j] != '\n'))
+				j++;
+			strncpy(user->cojo_user_crypt, &buf[i+1], j-i-1);
+
 			break;
 		}
 	}
@@ -133,7 +153,8 @@ int cojo_add_user(const cojo_user_t *cojo_user_obj)
 
 	fprintf(fp, "%s\t", cojo_user_obj->cojo_user_id);
 	fprintf(fp, "%s\t", cojo_user_obj->cojo_user_pwd);
-	fprintf(fp, "%s\n", cojo_user_obj->cojo_user_name);
+	fprintf(fp, "%s\t", cojo_user_obj->cojo_user_name);
+	fprintf(fp, "%s\t", cojo_user_obj->cojo_user_crypt);
 
 	// unlock the file
 	write_lock.l_type = F_UNLCK;
@@ -238,8 +259,3 @@ int cojo_alter_user(const cojo_user_t *cojo_user_obj)
 
 	return 0;
 }/* cojo_add_user() */
-
-
-
-	
-

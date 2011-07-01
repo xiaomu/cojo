@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include "cojo_test_userdb.h"
 #include <stdlib.h>
+#include <string.h>
 
 int main()
 {
@@ -79,7 +80,10 @@ void test_get(void)
 	}
 	printf("get id: %s\t", user_a->cojo_user_id);
 	printf("get pwd: %s\t", user_a->cojo_user_pwd);
-	printf("get name: %s\n", user_a->cojo_user_name);
+	printf("get name: %s\t", user_a->cojo_user_name);
+	printf("get crypt: %s\n", user_a->cojo_user_crypt);
+	
+	
 
 	
 }
@@ -101,12 +105,15 @@ void test_add(void)
 	cojo_user_t user;
 	int ret;
 
+	memset(&user, '\0', sizeof(user));
 	printf("add's id: ");
 	scanf("%s", user.cojo_user_id);
 	printf("add's pwd: ");
 	scanf("%s", user.cojo_user_pwd);
 	printf("add's name: ");
 	scanf("%s", user.cojo_user_name);
+	printf("add's crypt: ");
+	scanf("%s", user.cojo_user_crypt);
 
 	ret = cojo_add_user( &user);
 	if(ret == -1)
@@ -124,6 +131,9 @@ void test_alter(void)
 	scanf("%s", user.cojo_user_pwd);
 	printf("alter's new name: ");
 	scanf("%s", user.cojo_user_name);
+	printf("add's crypt: ");
+	scanf("%s", user.cojo_user_crypt);
+
 
 	ret = cojo_alter_user( &user);
 	if(ret == -1)
