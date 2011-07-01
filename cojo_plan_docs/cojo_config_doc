@@ -5,7 +5,7 @@
 源码实现:
 
 在cojo_config.h中
-#define COJO_DEFAULT_CONFIG_FILENAME "cojo_config"
+char cojo_config_filename[] = "cojo_config";
 
 char *cojo_get_userdb_filename(void);
 
