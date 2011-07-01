@@ -1,0 +1,27 @@
+
+all: cojo_test_userdb
+
+#which compiler
+CC = gcc
+
+#where are include files kept
+INCLUDE = .
+
+#options for development
+CFLAGS = -g -Wall 
+#options for release
+#CFLAGS = -O -Wall -ansi
+
+#local libraries
+MYLIB = cojo_test_userdb.a
+
+cojo_test_userdb: cojo_test_userdb.o $(MYLIB) 
+	$(CC) -o cojo_test_userdb cojo_test_userdb.o $(MYLIB)
+cojo_test_userdb.o: cojo_test_userdb.c cojo_test_userdb.h cojo_userdb.h cojo_log.h
+$(MYLIB): $(MYLIB)(cojo_config.o) $(MYLIB)(cojo_userdb.o) $(MYLIB)(cojo_log.o)
+cojo_config.o: cojo_config.h cojo_config.c
+cojo_userdb.o: cojo_userdb.h cojo_userdb.c
+cojo_log.o: cojo_log.h cojo_log.c
+
+clean:
+	rm *.o

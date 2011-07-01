@@ -30,7 +30,7 @@ cojo_user_t *cojo_get_user_byId(const char *cojo_user_id)
 
 	read_lock.l_type = F_RDLCK;
 	read_lock.l_whence = SEEK_SET;
-	read_lock.l_start = 10;
+	read_lock.l_start = 0;
 	read_lock.l_len = 0;
 
 	ret = fcntl(fd, F_SETLK, &read_lock);
@@ -59,22 +59,23 @@ cojo_user_t *cojo_get_user_byId(const char *cojo_user_id)
 			}
 
 			strncpy(user->cojo_user_id, cojo_user_id, COJO_USER_ID_LEN);	
-			strncpy(user->cojo_user_name, &buf[COJO_USER_ID_LEN +1], COJO_USER_NAME_LEN);
-			strncpy(user->cojo_user_pwd, &buf[COJO_USER_ID_LEN + COJO_USER_NAME_LEN +2], COJO_USER_PWD_LEN);
+			strncpy(user->cojo_user_name, &buf[COJO_USER_ID_LEN +1], COJO_USER_PWD_LEN);
+			strncpy(user->cojo_user_pwd, &buf[COJO_USER_ID_LEN + COJO_USER_PWD_LEN +2], COJO_USER_PWD_LEN);
 			break;
 		}
 	}
 
-	fclose(fp);
 	read_lock.l_type = F_UNLCK;
 	ret = fcntl(fd, F_SETLK, &read_lock);
 	if(ret == -1)
 		cojo_log("fcntl failed in cojo_userdb.c cojo_get_user_byId().\n");
 	
+	fclose(fp);
 	return user;
 } /* cojo_get_user_byId() */
 
 
+// open the userdb file and return the file descripter
 static int cojo_open_userdb(const int flags)
 {
 	int fd;
@@ -91,3 +92,154 @@ static int cojo_open_userdb(const int flags)
 
 	return fd;
 } /* cojo_open_userdb() */
+
+
+// add a new user
+int cojo_add_user(const cojo_user_t *cojo_user_obj)
+{
+	int fd;
+	FILE *fp = NULL;
+	struct flock write_lock;
+	int ret;
+
+	// get the file descriptor
+	fd = cojo_open_userdb(O_WRONLY);
+	if(fd == -1)
+	{
+		cojo_log("cojo_pen_userdb failed in cojo_userdb.c cojo_add_user.\n");
+		return -1;
+	}
+
+	// lock the file
+	write_lock.l_type = F_WRLCK;
+	write_lock.l_whence = SEEK_SET;
+	write_lock.l_start = 0;
+	write_lock.l_len =0;
+
+	ret = fcntl(fd, F_SETLK, &write_lock);
+	if(ret == -1)
+	{
+		cojo_log("fcntl failed in cojo_userdb.c cojo_add_user.\n");
+		return -1;
+	}
+
+	// convert the file descriptor to stream
+	fp = fdopen(fd, "a");
+	if(fp == NULL)
+	{
+		cojo_log("fdopen failed in cojo_userdb.c cojo_add_user.\n");
+		return -1;
+	}
+
+	fprintf(fp, "%s\t", cojo_user_obj->cojo_user_id);
+	fprintf(fp, "%s\t", cojo_user_obj->cojo_user_pwd);
+	fprintf(fp, "%s\n", cojo_user_obj->cojo_user_name);
+
+	// unlock the file
+	write_lock.l_type = F_UNLCK;
+	ret = fcntl(fd, F_SETLK, &write_lock);
+	if(ret == -1)
+		cojo_log("fcntl failed in cojo_userdb.c cojo_add_user.\n");
+	fclose(fp);
+
+	return 0;
+}/* cojo_add_user() */
+
+// del a user by id
+int cojo_del_user_byId(const char *cojo_user_id)
+{
+	int fd;
+	FILE *fp = NULL;
+	FILE *tmp_fp = NULL;
+	struct flock wr_lock;
+	int ret;
+	char buf[COJO_USER_TOTAL_LEN] = {'\0'};
+
+	fd = cojo_open_userdb(O_RDWR);
+	if(fd == -1)
+	{
+		cojo_log("cojo_open_userdb failed in cojo_userdb.c cojo_del_user_byId.\n");
+		return -1;
+	}
+
+	wr_lock.l_type = F_WRLCK;
+	wr_lock.l_whence = SEEK_SET;
+	wr_lock.l_start = 0;
+	wr_lock.l_len = 0;
+
+	ret = fcntl(fd, F_SETLK, &wr_lock);
+	if(ret == -1)
+	{
+		cojo_log("fcntl failed in cojo_userdb.c cojo_del_user_byId.\n");
+		return -1;
+	}
+
+	fp = fdopen(fd, "r+");
+	if(fp == NULL)
+	{
+		cojo_log("fcntl failed in cojo_userdb.c cojo_del_user_byId.\n");
+		return -1;
+	}
+
+	tmp_fp = tmpfile();
+	if(tmp_fp == NULL)
+	{
+		cojo_log("tmpfile failed in cojo_userdb.c cojo_del_user_byId.\n");
+		return -1;
+	}
+
+	while(fgets( buf, COJO_USER_TOTAL_LEN, fp) != NULL)
+	{
+		if(strncmp(cojo_user_id, buf, COJO_USER_ID_LEN) != 0)
+		{
+			fputs(buf, tmp_fp);
+		}
+	}
+
+	ftruncate(fd, 0);
+	rewind(fp);
+	rewind(tmp_fp);
+	while(fgets( buf, COJO_USER_TOTAL_LEN, tmp_fp) != NULL)
+	{
+		fputs(buf, fp);
+	}
+
+	
+	wr_lock.l_type = F_UNLCK;
+	ret = fcntl(fd, F_SETLK, &wr_lock);
+	if(ret == -1)
+		cojo_log("fcntl failed in cojo_userdb.c cojo_del_user_byId().\n");
+	fclose(tmp_fp);
+	fclose(fp);
+	return 0;
+} /* cojo_del_user_byId() */
+			
+// alter a user's information
+// first, del his origin infor
+// then, add new infor
+int cojo_alter_user(const cojo_user_t *cojo_user_obj)
+{
+	char *cojo_user_id = NULL;
+	int ret;
+
+	cojo_user_id = cojo_user_obj->cojo_user_id;
+	ret = cojo_del_user_byId( cojo_user_id);
+	if(ret == -1)
+	{
+		cojo_log("cojo_del_user_byId failed in cojo_userdb.c cojo_alter_user.\n");
+		return -1;
+	}
+	ret = cojo_add_user(cojo_user_obj);
+	if(ret == -1)
+	{
+		cojo_log("cojo_add_user failed in cojo_userdb.c cojo_alter_user.\n");
+		return -1;
+	}
+
+	return 0;
+}/* cojo_add_user() */
+
+
+
+	
+

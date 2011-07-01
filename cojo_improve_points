@@ -1,0 +1,1 @@
+1, cojo_userdb.c中 cojo_alter_user() 中 如何保证 cojo_add_user(), cojo_del_user_byId()作为一个整体的原子性？   －－－ 现复制， 如异常，再恢复。
