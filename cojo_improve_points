@@ -1,1 +1,8 @@
 1, cojo_userdb.c中 cojo_alter_user() 中 如何保证 cojo_add_user(), cojo_del_user_byId()作为一个整体的原子性？   －－－ 现复制， 如异常，再恢复。
+
+2, cojo_user_online.c中 cojo_get_user_id_online()中， 返回ID列表， 为减少分配内存次数， 
+可以先分配一个指针数组， 再分配一个二维数组， 将他们联系。
+
+3, 保证 cojo_server.cojo_user_online_num 操作的原子性。
+
+4, 可以抽象出一个函数， 实现从线性空间取得 cojo_user_t类型数据。

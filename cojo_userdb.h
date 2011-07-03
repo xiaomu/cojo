@@ -30,4 +30,5 @@ int cojo_alter_user(const cojo_user_t *cojo_user_obj);
 int cojo_add_user(const cojo_user_t *cojo_user_obj);
 int cojo_del_user_byId(const char *cojo_user_id);
 static int cojo_open_userdb(const int flags);
+cojo_user_t *cojo_get_user_from_lnspa(const char *cojo_lnspa);
 #endif

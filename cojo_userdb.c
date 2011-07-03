@@ -259,3 +259,56 @@ int cojo_alter_user(const cojo_user_t *cojo_user_obj)
 
 	return 0;
 }/* cojo_add_user() */
+
+
+// get a cojo_user_t object from line space.
+// return null if failed.
+cojo_user_t *
+cojo_get_user_from_lnspa(const char *cojo_lnspa)
+{
+	cojo_user_t *user_obj = NULL;
+	int i, j;
+	const char *buf = cojo_lnspa;
+
+	user_obj = (cojo_user_t *)malloc(sizeof(cojo_user_t));
+	if(user_obj == NULL)
+	{
+		cojo_log("malloc failed in cojo_userdb.c cojo_get_user_from_lnspa().\n");
+		return NULL;
+	}
+	memset(user_obj, '\0', sizeof(user_obj));
+			
+	// get the user's id
+	i = 0;
+	j = i;
+	while((ptr[j] != '\t')&&(ptr[j] !='\0')&&(ptr[j] != '\n')&&(j<COJO_USER_TOTAL_LEN))
+	{
+		j++;
+	}
+	strncpy(user_obj.cojo_user_id, &ptr[i], j-i);
+
+	// get the user's pwd
+	i = ++j;
+	while((ptr[j] != '\t')&&(ptr[j] !='\0')&&(ptr[j] != '\n')&&(j<COJO_USER_TOTAL_LEN))
+	{
+		j++;
+	}
+	strncpy(user_obj.cojo_user_pwd, &ptr[i], j-i);
+
+	// get the user's name
+	i = ++j;
+	while((ptr[j] != '\t')&&(ptr[j] !='\0')&&(ptr[j] != '\n')&&(j<COJO_USER_TOTAL_LEN))
+	{
+		j++;
+	}
+	strncpy(user_obj.cojo_user_name, &ptr[i], j-i);
+
+	// get the user's crypt
+	i = ++j;
+	while((ptr[j] != '\t')&&(ptr[j] !='\0')&&(ptr[j] != '\n')&&(j<COJO_USER_TOTAL_LEN))
+	{
+		j++;
+	}
+
+	return user_obj;
+}/* cojo_get_user_from_lnspa() */
