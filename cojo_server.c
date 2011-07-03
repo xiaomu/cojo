@@ -130,8 +130,6 @@ cojo_server_work(void)
 					(struct sockaddr *)&cojo_client_addr,
 					&cojo_client_len);
 
-			cojo_server.cojo_user_online_num ++;
-
 			ret = pthread_create(&a_thread, NULL, cojo_handle_con ,
 					(void *)cojo_client_sockfd);
 			if(ret != 0)
@@ -156,7 +154,9 @@ cojo_handle_con(void *arg)
 	cojo_msg_t cojo_msg_obj;
 	cojo_msg_t cojo_msg_back;
 
-	int bool_login; 
+	int bool_login = 0; 
+	cojo_user_t *user_obj;
+	cojo_user_online_t user_online_obj;
 
 	cojo_msg_ojb.content =(char *)malloc(COJO_MSG_LEN *sizeof(char));
 	if(cojo_msg_obj.content == NULL)
@@ -224,6 +224,26 @@ cojo_handle_con(void *arg)
 						cojo_handle_con.\n");
 				exit(1);
 			}
+
+			bool_login = 1;
+
+			user_obj = cojo_get_user_from_lnspa(cojo_msg_obj->content);
+			memcpy(user_online_obj.cojo_user_obj, user_obj, sizeof(user_obj));
+			user_online_obj.cojo_user_sockfd = cojo_sockfd;
+			user_online_obj.cojo_bool_comn = 0;
+
+			ret2 = cojo_add_online_user(cojo_server.cojo_user_online_list,
+					&user_online_obj);
+
+			if(ret == -1)
+			{
+				cojo_log("cojo_add_online_user failed in cojo_server.c
+						cojo_handle_con().\n");
+				exit(1)
+			}
+				
+
+			
 		}
 		else if(cojo_msg_obj.cojo_con_type == SLTID)
 		{
@@ -249,7 +269,7 @@ cojo_handle_con(void *arg)
 
 			if(cojo_con_sockfd != -1)
 			{
-				cojo_comu(cojo_sockfd, cojo_con_sockfd);
+				cojo_comn(cojo_sockfd, cojo_con_sockfd);
 			}
 		}
 		else if(cojo_msg_obj.cojo_con_type == QUIT)
@@ -324,8 +344,164 @@ cojo_do_login(cojo_msg_t *cojo_msg_obj)
 }/* cojo_do_login() */
 
 
-	
+// get the sockfd of an online user
+int
+cojo_do_sltid(cojo_msg_t *cojo_msg_obj)
+{
+	int i, j;
+	char cojo_user_id[COJO_USER_ID_LEN];
+
+	i = 0;
+	j = i;
+	while((cojo_msg_obj->content->content[j] != '\t')&&(cojo_msg_obj->content[j] != '\n')
+			&&(cojo_msg_obj->content->content[j] != '\0')
+		       	&&(j < COJO_USER_TOTAL_LEN))
+	{
+		j++;
+	}
+
+	strncpy(cojo_user_id, &(cojo_msg_obj->content[i]), j-i);
+
+	sockfd = cojo_get_sockfd_byId(cojo_server.cojo_user_online_list,
+			cojo_user_id);
+
+	return sockfd;
+}/* cojo_do_sltid() */
+			
+
+// commucation between two sock fds
+void
+cojo_comn(int cojo_sockfd, int cojo_con_sockfd)
+{
+	char msg[COJO_MSG_LEN] = {'\0'};
+	fd_set readfds, testfds;
+	int ret;
+	int fd;
+	int nread;
+		
+	FD_ZERO(&readfds);
+	FD_SET(cojo_sockfd, &readfds);
+	FD_SET(cojo_con_sockfd, &readfds);
+
+	while(1)
+	{
+		testfds = readfds;
+
+		ret = select(FD_SETSIZE, &testfds, (fd_set *)0,
+				(fd_set *)0, (struct timeval *)0);
+		if(ret == -1)
+		{
+			cojo_log("selct failed in cojo_server.c cojo_comn.\n");
+			exit(1);
+		}
+
+		for(fd = 0; fd < FD_SETSIZE; fd++)
+		{
+			if (FD_ISSET(fd, &testfds))
+			{
+				if(fd == cojo_sockfd)
+				{
+					ioctl(fd, FIONREAD, &nread);
+					if(nread == 0)
+					{
+						close(fd);
+						FD_CLR(fd, &readfds);
+						FD_CLR(cojo_con_sockfd, &readfds);
+						cojo_del_userol_byfd(fd);
+						cojo_rel_userol_byfd(cojo_con_sockfd);
+					}
+					else
+					{
+						read(fd, msg, COJO_MSG_LEN);
+						write(cojo_con_sockfd, msg, COJO_MSG_LEN);
+					}
+				}
+				else
+				{
+					ioctl(fd, FIONREAD, &nread);
+					if(nread == 0)
+					{
+						close(fd);
+						FD_CLR(fd, &readfds);
+						FD_CLR(cojo_sockfd, &readfds);
+						cojo_del_userol_byfd(fd);
+						cojo_rel_userol_byfd(cojo_sockfd);
+					}
+					else
+					{
+						read(fd, msg, COJO_MSG_LEN);
+						write(cojo_sockfd, msg, COJO_MSG_LEN);
+					}
+				}
+			}
+		}
+
+	}
+} /* cojo_comn() */
+
+int
+cojo_del_userol_byfd(int fd)
+{
+	cojo_user_online_t *ptr = NULL;
+	cojo_user_online_t *pos = NULL;
+
+	ptr = cojo_server.cojo_user_online_list;
+	if(ptr == NULL)
+	{
+		cojo_log("user ol list in null, error occured.\n");
+		exit(1);
+	}
+
+	pos = ptr;
+
+	if(ptr->cojo_user_sockfd == fd)
+	{
+		cojo_user_online_list = ptr->next;
+		free(ptr);
+	}
+	else
+	{
+		while(ptr != NULL)
+		{
+			pos = ptr;
+			ptr = ptr->next;
+
+			if(ptr->cojo_user_sockfd == fd)
+			{
+				pos->next = ptr->next;
+				free(ptr);
+			}
+		}
+	}
+
+	return 0;
+} /* cojo_del_userol_byfd() */
 
 
+// release a user by fd
+int
+cojo_rel_user_byfd(int fd)
+{
+	cojo_user_online_t *ptr;
+
+	ptr = cojo_server.cojo_user_online_list;
+	if(ptr == NULL)
+	{
+		cojo_log("user ol list in null, error occured.\n");
+		exit(1);
+	}
+
+	while(ptr != NULL)
+	{
+		if(ptr->cojo_user_sockfd == fd)
+		{
+			ptr->cojo_bool_comn = 0;
+			break;
+		}
+		ptr = ptr->next;
+	}
+
+	return 0;
+}/* cojo_rel_user_byfd() */
 
 

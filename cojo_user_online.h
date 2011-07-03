@@ -1,19 +1,22 @@
+/*
+ * author: xiaodeng
+ * date: 2011/07/03
+ */
+
 #ifndef COJO_USER_ONLINE
 #define COJO_USER_ONLINE
-
-#include <sys/un.h>	// include sockaddr_un
-#include <netinet/in.h>	// include sockaddr_in
 
 struct cojo_user_online
 {
 	cojo_user_t cojo_user_obj;
-	struct sockaddr_in cojo_user_addr;
+	int cojo_user_sockfd;
+	int cojo_bool_comn;
 	struct cojo_user_online *next;
 }
 typedef struct cojo_user_online cojo_user_online_t;
 
 //declaration of functions
-cojo_sockaddr_t *cojo_get_addr_byId(
+int *cojo_get_sockfd_byId(
 		cojo_user_online_t *cojo_user_online_list_head,
 	       	const char *cojo_user_id
 		);

@@ -1,3 +1,8 @@
+/*
+ * author: xiaomu
+ * date: 2011/07/03
+ */
+
 #include "cojo_user_online.c"
 
 // add an online user
@@ -26,14 +31,14 @@ cojo_add_online_user(
 	return 0;
 }/* cojo_add_online_user() */
 
-sockaddr_in *
-cojo_get_addr_byId(
+int *
+cojo_get_sockfd_byId(
 		cojo_user_online_t *cojo_user_online_list_head,
 		const char *cojo_user_id
 		)
 {
 	cojo_user_online_t *ptr = NULL;
-	sockaddr_in *ret_addr = NULL;
+	int cojo_sockfd = -1;
 
 	ptr = cojo_user_online_list_head;
 	while(ptr != NULL)
@@ -41,20 +46,12 @@ cojo_get_addr_byId(
 		if(strncmp(ptr->cojo_user_obj.cojo_user_id, cojo_user_id, 
 						COJO_USER_ID_LEN) == 0)
 		{
-			ret_addr = (sockaddr_in *)malloc(sizeof(sockaddr_in));
-			if(ret_addr = NULL)
-			{
-				cojo_log("malloc failed in cojo_user_online.c 
-						cojo_get_addr_byId()\n"
-					);
-				return NULL;
-			}
-			memcpy(ret_addr, ptr->cojo_user_addr, sizeof(sockaddr_in);
+			cojo_sockfd = ptr->cojo_user_sockfd;
 			break;
-		}_
+		}
 	}
 
-	return ret_addr;
+	return cojo_sockfd;
 }/* cojo_get_addr_byId() */
 
 // delete an online user
@@ -142,7 +139,3 @@ cojo_get_user_id_online(
 	
 	return id_array;
 }
-
-
-
-
