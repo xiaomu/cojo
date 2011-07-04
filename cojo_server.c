@@ -275,6 +275,7 @@ cojo_handle_con(void *arg)
 		else if(cojo_msg_obj.cojo_con_type == QUIT)
 		{
 			close(cojo_sockfd);
+			cojo_del_userol_byfd(cojo_sockfd);
 		}
 	}
 
@@ -470,7 +471,7 @@ cojo_del_userol_byfd(int fd)
 			{
 				pos->next = ptr->next;
 				free(ptr);
-			}
+			 }
 		}
 	}
 
