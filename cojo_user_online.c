@@ -3,7 +3,12 @@
  * date: 2011/07/03
  */
 
-#include "cojo_user_online.c"
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
+#include "cojo_user_online.h"
+#include "cojo_log.h"
 
 // add an online user
 int
@@ -31,7 +36,7 @@ cojo_add_online_user(
 	return 0;
 }/* cojo_add_online_user() */
 
-int *
+int
 cojo_get_sockfd_byId(
 		cojo_user_online_t *cojo_user_online_list_head,
 		const char *cojo_user_id

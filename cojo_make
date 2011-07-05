@@ -1,0 +1,36 @@
+all: cojo_server cojo_client 
+
+# which compiler
+CC = gcc
+
+# where are include files kept
+INCLUDE = .
+
+# options for development
+CFLAGS = -g -Wall -Wstrict-prototypes
+
+# options for release
+# CFLAGS = -O -Wall
+
+# local libraries
+MYLIB = cojo.a
+
+$(MYLIB): $(MYLIB)(cojo_addr.o) $(MYLIB)(cojo_client.o) $(MYLIB)(cojo_config.o) $(MYLIB)(cojo_server.o) $(MYLIB)(cojo_userdb.o) $(MYLIB)(cojo_user_online.o) $(MYLIB)(cojo_log.o)
+
+cojo_server: cojo_main.o $(MYLIB)
+	$(CC) -o cojo_server cojo_main.o $(MYLIB) -L/usr/lib/nptl -lpthread
+
+cojo_client: cojo_client_main.o $(MYLIB)
+	$(CC) -o cojo_client cojo_client_main.o $(MYLIB) -L/user/lib/nptl -lpthread
+
+cojo_main.o: cojo_main.c cojo_log.h
+cojo_client_main.o: cojo_client_main.c cojo_log.h
+cojo_addr.o: cojo_addr.c cojo_addr.h cojo_log.h
+cojo_client.o: cojo_client.c cojo_client.h cojo_log.h cojo_addr.h
+	$(CC) -I$(INCLUDE) $(CFLAGS) -c -D_REENTRANT -I/usr/include/nptl cojo_client.c
+cojo_config.o: cojo_config.c cojo_config.h cojo_log.h
+cojo_log.o: cojo_log.c cojo_log.h
+cojo_server.o: cojo_server.c cojo_server.h cojo_log.h
+cojo_userdb.o: cojo_userdb.c cojo_userdb.h cojo_log.h
+cojo_user_online.o: cojo_user_online.c cojo_user_online.h cojo_log.h
+

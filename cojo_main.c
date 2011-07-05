@@ -5,7 +5,6 @@
 
 int main(int argc, char *argv[])
 {
-	int ret;
 
 	// init the server
 	cojo_init_server();
@@ -16,7 +15,7 @@ int main(int argc, char *argv[])
 	// run the server
 	cojo_server_work();
 
-	cojo_clear();
+	//cojo_clear();
 
 	return 0;
 }

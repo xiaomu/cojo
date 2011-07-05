@@ -2,10 +2,11 @@
 #define COJO_SERVER_H
 
 #include <netinet/in.h>
+#include "cojo_user_online.h"
 
 struct cojo_server_def
 {
-	sockaddr_in cojo_server_addr;
+	struct sockaddr_in cojo_server_addr;
 	int cojo_user_online_num;
 	cojo_user_online_t *cojo_user_online_list;
 };
@@ -20,13 +21,13 @@ enum cojo_con_type_def
 	SLTID,
 	QUIT,
 };
-typedef cojo_con_type_def cojo_con_type_t;
+typedef enum cojo_con_type_def cojo_con_type_t;
 
 struct cojo_msg
 {
 	cojo_con_type_t cojo_con_type;
 	char *content;
-}
+};
 typedef struct cojo_msg cojo_msg_t;
 
 #define COJO_MSG_LEN 100

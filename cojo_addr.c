@@ -13,7 +13,6 @@ cojo_get_addr(void)
 {
 	struct ifaddrs *ifAddrStruct = NULL;
 	struct ifaddrs *ifa = NULL;
-	void *tmpAddrPtr = NULL;
 	cojo_addr_item_t *cojo_addr = NULL;
 	cojo_addr_item_t *cojo_addr_temp = NULL;
 	cojo_addr_item_t *cojo_addr_ptr = NULL;
@@ -33,9 +32,9 @@ cojo_get_addr(void)
 				return NULL;
 			}
 			cojo_addr_temp->next = NULL;
-			memcpy(cojo_addr_temp->cojo_sin_addr, 
-					&((struct sockaddr_in *)ifa->ifa_addr)->sin_addr;
-					sizeof(in_addr)
+			memcpy(&(cojo_addr_temp->cojo_sin_addr), 
+					&(((struct sockaddr_in *)ifa->ifa_addr)->sin_addr),
+					sizeof(struct in_addr)
 			      );
 			
 			if(cojo_addr_ptr == NULL)

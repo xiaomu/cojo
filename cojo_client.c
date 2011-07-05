@@ -1,5 +1,22 @@
+#include <stdio.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <string.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <pthread.h>
+#include <sys/ioctl.h>
+
+#include "cojo_log.h"
+#include "cojo_client.h"
+#include "cojo_addr.h"
+#include "cojo_server.h"
+
+
+static int b_comn = 0;
 int
-cojo_set_addr(void)
+cojo_cli_set_addr(void)
 {
 
 	cojo_addr_item_t *cojo_addrs = NULL;
@@ -18,14 +35,14 @@ cojo_set_addr(void)
 	while( ptr != NULL)
 	{
 		i ++;
-		inet_ntop(AF_INET, ptr->cojo_server_addr, addr_buf, INET_ADDRSTRLEN);
+		inet_ntop(AF_INET, &(ptr->cojo_sin_addr), addr_buf, INET_ADDRSTRLEN);
 		addr_buf[INET_ADDRSTRLEN] = '\0';
 
 		fprintf(stdout, "%d--- %s\n", i, addr_buf);
 
-		prt = ptr->next;
+		ptr = ptr->next;
 	}
-	fprintf("input your choice: ");
+	fprintf(stdout, "input your choice: ");
 	fscanf(stdin, "%d", &choice);
 
 	while((choice < 1) || (choice > i))
@@ -47,10 +64,10 @@ cojo_set_addr(void)
 	}
 	
 	fprintf(stdout, "\ninput the port number (default: 9798) :");
-	fscanf(stdin, "%d", cojo_port);
+	fscanf(stdin, "%d", &cojo_port);
 
-	cojo_client->cojo_client_addr.sin_addr = ptr->cojo_sin_addr;
-	cojo_client->cojo_client_addr.sin_port = cojo_port;
+	cojo_client.cojo_client_addr.sin_addr = ptr->cojo_sin_addr;
+	cojo_client.cojo_client_addr.sin_port = cojo_port;
 
 	return 0;
 }/* cojo_set_addr() */ 
@@ -75,10 +92,10 @@ cojo_cli_register(int cli_sockfd)
 	cojo_msg_t msg_obj;
 	char buf[COJO_MSG_LEN] = {'\0'};
 	char tmp[COJO_MSG_LEN] = {'\0'};
-	int i,j;
+	int i;
 	int ret;
 
-	fd_set readfds, testfds;
+	fd_set readfds;
 
 	fprintf(stdout, "input id(length = %d) : ", COJO_USER_ID_LEN);
 	fscanf(stdin, "%s", tmp);
@@ -137,7 +154,7 @@ cojo_cli_register(int cli_sockfd)
 		return -1;
 	}
 
-	read(cli_sockfd, msg_obj, COJO_USER_MSG_LEN);
+	read(cli_sockfd, &msg_obj, COJO_MSG_LEN);
 	if(buf[0] == 'y')
 	{
 		return 0;
@@ -156,7 +173,7 @@ cojo_cli_login(int cli_sockfd)
 	cojo_msg_t msg_obj;
 	char buf[COJO_MSG_LEN] = {'\0'};
 	char tmp[COJO_MSG_LEN] = {'\0'};
-	int i,j;
+	int i;
 	int ret;
 
 	fd_set readfds;
@@ -211,7 +228,7 @@ cojo_cli_login(int cli_sockfd)
 		return -1;
 	}
 
-	read(cli_sockfd, msg_obj, COJO_USER_MSG_LEN);
+	read(cli_sockfd, &msg_obj, COJO_MSG_LEN);
 	if(buf[0] == 'y')
 	{
 		return 0;
@@ -230,10 +247,9 @@ cojo_cli_sltid(int cli_sockfd)
 	cojo_msg_t msg_obj;
 	char buf[COJO_MSG_LEN] = {'\0'};
 	char tmp[COJO_MSG_LEN] = {'\0'};
-	int i,j;
+	int i;
 	int ret;
 	
-	int b_comn = 0;
 
 	fd_set readfds, testfds;
 	pthread_t a_thread;
@@ -277,15 +293,15 @@ cojo_cli_sltid(int cli_sockfd)
 	if(ret == -1)
 	{
 		cojo_log("select failed in cojo_client.c cojo_cli_register.\n");
-		return -1;
+		exit(1);
 	}
 
-	read(cli_sockfd, msg_obj, COJO_USER_MSG_LEN);
+	read(cli_sockfd, &msg_obj, COJO_MSG_LEN);
 	if(buf[0] == 'y')
 	{
 		pthread_create(&a_thread, NULL, cojo_cli_sltid_write, &cli_sockfd);
 		fprintf(stdout, "connect to id %s succeed.\n", tmp);
-		fprintf("go > ");
+		fprintf(stdout, "go > ");
 
 		FD_ZERO(&readfds);
 		FD_SET(cli_sockfd, &readfds);
@@ -331,16 +347,17 @@ cojo_cli_sltid_write(void *arg)
 {
 	int sockfd = *(int *)arg;
 
-	char *w_buf[COJO_MSG_LEN] = {'\0'};
+	char w_buf[COJO_MSG_LEN] = {'\0'};
 	
 	while(b_comn)
 	{
 
 		fprintf(stdout, "go>");
-		fscanf("%s", w_buf);
+		fscanf(stdin,"%s", w_buf);
 
 		write(sockfd, w_buf, COJO_MSG_LEN);
 		memset(w_buf, '\0', COJO_MSG_LEN);
 	}
+	pthread_exit(NULL);
 }/* cojo_cli_sltid_write */
 

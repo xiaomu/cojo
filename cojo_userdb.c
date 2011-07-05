@@ -12,6 +12,8 @@
 #include "cojo_userdb.h"
 #include "cojo_log.h"
 
+static int cojo_open_userdb(const int flags);
+
 cojo_user_t *cojo_get_user_byId(const char *cojo_user_id)
 {	 
 	int fd;
@@ -238,7 +240,7 @@ int cojo_del_user_byId(const char *cojo_user_id)
 // alter a user's information
 // first, del his origin infor
 // then, add new infor
-int cojo_alter_user(const cojo_user_t *cojo_user_obj)
+int cojo_alter_user(cojo_user_t *cojo_user_obj)
 {
 	char *cojo_user_id = NULL;
 	int ret;
@@ -268,7 +270,7 @@ cojo_get_user_from_lnspa(const char *cojo_lnspa)
 {
 	cojo_user_t *user_obj = NULL;
 	int i, j;
-	const char *buf = cojo_lnspa;
+	const char *ptr = cojo_lnspa;
 
 	user_obj = (cojo_user_t *)malloc(sizeof(cojo_user_t));
 	if(user_obj == NULL)
@@ -285,7 +287,7 @@ cojo_get_user_from_lnspa(const char *cojo_lnspa)
 	{
 		j++;
 	}
-	strncpy(user_obj.cojo_user_id, &ptr[i], j-i);
+	strncpy(user_obj->cojo_user_id, &ptr[i], j-i);
 
 	// get the user's pwd
 	i = ++j;
@@ -293,7 +295,7 @@ cojo_get_user_from_lnspa(const char *cojo_lnspa)
 	{
 		j++;
 	}
-	strncpy(user_obj.cojo_user_pwd, &ptr[i], j-i);
+	strncpy(user_obj->cojo_user_pwd, &ptr[i], j-i);
 
 	// get the user's name
 	i = ++j;
@@ -301,7 +303,7 @@ cojo_get_user_from_lnspa(const char *cojo_lnspa)
 	{
 		j++;
 	}
-	strncpy(user_obj.cojo_user_name, &ptr[i], j-i);
+	strncpy(user_obj->cojo_user_name, &ptr[i], j-i);
 
 	// get the user's crypt
 	i = ++j;

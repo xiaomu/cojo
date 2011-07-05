@@ -1,6 +1,3 @@
-cojo_test_userdb.c: In function ‘show_menu’:
-cojo_test_userdb.c:61: warning: value computed is not used
-cojo_test_userdb.c: At top level:
-cojo_userdb.h:30: warning: ‘cojo_open_userdb’ declared ‘static’ but never defined
-cojo_userdb.c: In function ‘cojo_alter_user’:
-cojo_userdb.c:225: warning: assignment discards qualifiers from pointer target type
+cojo_server.c: In function ‘cojo_server_work’:
+cojo_server.c:137: warning: pointer targets in passing argument 3 of ‘accept’ differ in signedness
+cojo_server.c:137: warning: assignment makes pointer from integer without a cast

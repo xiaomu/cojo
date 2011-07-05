@@ -5,7 +5,7 @@
 
 struct cojo_addr_item
 {
-	in_addr cojo_sin_addr;
+	struct in_addr cojo_sin_addr;
 	struct cojo_addr_item *next;
 };
 typedef struct cojo_addr_item cojo_addr_item_t;

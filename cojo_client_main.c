@@ -1,5 +1,11 @@
+#include <stdlib.h>
+#include <unistd.h>
+#include <stdio.h>
+
 #include "cojo_client.h"
 #include "cojo_log.c"
+
+static void cojo_show_menu(void);
 
 static char *menu[] =
 {
@@ -21,12 +27,13 @@ int main(int argc, char *argv[])
 	int b_log = -1;
 
 	int ret;
+	int choice;
 
 	// init the cilent
-	cojo_init_client(void);
+	cojo_init_client();
 
 	// set the address of the client
-	cojo_cli_set_addr(void);
+	cojo_cli_set_addr();
 
 	// build a socket
 	cli_addr_len = sizeof(cojo_client.cojo_client_addr);
@@ -38,7 +45,7 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
-	ret = connect(cli_sockfd, &(cojo_client.cojo_client_addr), cli_addr_len);
+	ret = connect(cli_sockfd, (struct sockaddr *)&(cojo_client.cojo_client_addr), cli_addr_len);
 	if(ret == -1)
 	{
 		cojo_log("connect failed in cojo_client_main.c main.\n");
@@ -48,7 +55,7 @@ int main(int argc, char *argv[])
 	
 	fprintf(stdout, "connect succeed.\n");
 
-	show_menu();
+	cojo_show_menu();
 	fprintf(stdout, "input your choice: ");
 	fscanf(stdin, "%d", &choice);
 
@@ -69,7 +76,7 @@ int main(int argc, char *argv[])
 				}
 				else
 				{
-					fprintf("you have not log.\n");
+					fprintf(stdout, "you have not log.\n");
 				}
 				break;
 			case 0:
@@ -79,7 +86,7 @@ int main(int argc, char *argv[])
 				fprintf(stdout, "choice not recognzied.\n");
 		}
 		
-		show_menu();
+		cojo_show_menu();
 		fprintf(stdout, "input your choice.\n");
 		fscanf(stdin, "%d", &choice);
 	}
@@ -89,14 +96,14 @@ int main(int argc, char *argv[])
 }
 
 
-static void cojo_show_menu()
+static void cojo_show_menu(void)
 {
 	char **p = menu;
 	
 	while(*p != NULL)
 	{
 		printf("%s", *p);
-		*p ++;
+		(*p) ++;
 	}
 }/* cojo_show_menu() */
 
