@@ -1,3 +1,8 @@
+/* 
+ * author: xiaomu
+ * date: 2011/07/05
+ */
+
 #ifndef COJO_ADDR_H
 #define COJO_ADDR_H
 

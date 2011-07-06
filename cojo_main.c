@@ -10,7 +10,7 @@ int main(int argc, char *argv[])
 	cojo_init_server();
 
 	// set server's socket addr
-	cojo_set_addr();
+	//cojo_set_addr();
 	
 	// run the server
 	cojo_server_work();

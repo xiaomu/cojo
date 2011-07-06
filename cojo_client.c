@@ -1,3 +1,4 @@
+#include <sys/select.h>
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -15,6 +16,7 @@
 
 
 static int b_comn = 0;
+
 int
 cojo_cli_set_addr(void)
 {
@@ -67,7 +69,7 @@ cojo_cli_set_addr(void)
 	fscanf(stdin, "%d", &cojo_port);
 
 	cojo_client.cojo_client_addr.sin_addr = ptr->cojo_sin_addr;
-	cojo_client.cojo_client_addr.sin_port = cojo_port;
+	cojo_client.cojo_client_addr.sin_port = htons(cojo_port);
 
 	return 0;
 }/* cojo_set_addr() */ 
@@ -79,7 +81,7 @@ cojo_init_client(void)
 {
 	
 	cojo_client.cojo_client_addr.sin_family = AF_INET;
-	cojo_client.cojo_client_addr.sin_port = 9798;
+	cojo_client.cojo_client_addr.sin_port = htons(9798);
 	cojo_client.cojo_client_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
 	
 }/* cojo_init_client() */
@@ -90,12 +92,10 @@ int
 cojo_cli_register(int cli_sockfd)
 {
 	cojo_msg_t msg_obj;
-	char buf[COJO_MSG_LEN] = {'\0'};
+	char *buf = msg_obj.content;
 	char tmp[COJO_MSG_LEN] = {'\0'};
 	int i;
 	int ret;
-
-	fd_set readfds;
 
 	fprintf(stdout, "input id(length = %d) : ", COJO_USER_ID_LEN);
 	fscanf(stdin, "%s", tmp);
@@ -125,6 +125,10 @@ cojo_cli_register(int cli_sockfd)
 	fprintf(stdout, "input name(length <= %d) : ", COJO_USER_NAME_LEN);
 	fscanf(stdin, "%s", tmp);
 	strncat(buf, tmp, COJO_USER_NAME_LEN);
+	while(buf[i] != '\0')
+	{
+		i ++;
+	}
 	buf[i] = '\t';
 	i ++;
 	buf[i] = '\0';
@@ -132,28 +136,54 @@ cojo_cli_register(int cli_sockfd)
 	fprintf(stdout, "input crypt(length <= %d) : ", COJO_USER_CRYPT_LEN);
 	fscanf(stdin, "%s", tmp);
 	strncat(buf, tmp, COJO_USER_CRYPT_LEN);
-	buf[i] = '\t';
-	i ++;
+	while(buf[i] != '\0')
+	{
+		i ++;
+	}
 	buf[i] = '\0';
 
 
 	msg_obj.cojo_con_type = REGISTER;
-	msg_obj.content = buf;
 
-	write(cli_sockfd, buf, sizeof(msg_obj));
+#if 0
+	while(1)
+	{
+		// 4 是msg_obj.cojo_con_type 占用的空间
+		ret = write(cli_sockfd, msg_obj, 4 + strlen(msg_obj.content));
+		if(ret == -1)
+		{
+			cojo_log("write failed in cojo_client.c cojo_cli_register.\n");
+			exit(1);
+		}
+		fprintf(stdout, "write %d B in cli_sockfd: %d\n", ret, cli_sockfd);
 
-	FD_ZERO(&readfds);
-	FD_SET(cli_sockfd, &readfds);
+		FD_ZERO(&readfds);
+		FD_SET(cli_sockfd, &readfds);
+		s_time.tv_sec = 3;
+		s_time.tv_usec = 500000;
 
-	ret = select(FD_SETSIZE, &readfds, (fd_set *)0,
-			(fd_set *)0, (struct timeval *)0);
-
+		ret = select(FD_SETSIZE, &readfds, (fd_set *)0,
+				(fd_set *)0, &s_time);
+	
+		if(ret == -1)
+		{	
+			cojo_log("select failed in cojo_client.c cojo_cli_register.\n");
+			return -1;
+		}
+		else if(ret !=0)
+		{
+			break;
+		}
+	}
+#endif
+	// 4 是msg_obj.cojo_con_type 占用的空间
+	ret = write(cli_sockfd, &msg_obj, 4 + strlen(msg_obj.content));
 	if(ret == -1)
 	{
-		cojo_log("select failed in cojo_client.c cojo_cli_register.\n");
-		return -1;
+		cojo_log("write failed in cojo_client.c cojo_cli_register.\n");
+		exit(1);
 	}
-
+		
 	read(cli_sockfd, &msg_obj, COJO_MSG_LEN);
 	if(buf[0] == 'y')
 	{
@@ -171,12 +201,10 @@ int
 cojo_cli_login(int cli_sockfd)
 {
 	cojo_msg_t msg_obj;
-	char buf[COJO_MSG_LEN] = {'\0'};
+	char *buf = msg_obj.content;
 	char tmp[COJO_MSG_LEN] = {'\0'};
 	int i;
 	int ret;
-
-	fd_set readfds;
 
 	fprintf(stdout, "input id(length = %d) : ", COJO_USER_ID_LEN);
 	fscanf(stdin, "%s", tmp);
@@ -212,10 +240,15 @@ cojo_cli_login(int cli_sockfd)
 	
 
 	msg_obj.cojo_con_type = LOGIN;
-	msg_obj.content = buf;
 
-	write(cli_sockfd, buf, sizeof(msg_obj));
+	ret = write(cli_sockfd, &msg_obj, 4 + strlen(msg_obj.content));
+	if(ret == -1)
+	{
+		cojo_log("write failed in cojo_client.c cojo_cli_login.\n");
+		exit(1);
+	}
 
+#if 0
 	FD_ZERO(&readfds);
 	FD_SET(cli_sockfd, &readfds);
 
@@ -227,6 +260,7 @@ cojo_cli_login(int cli_sockfd)
 		cojo_log("select failed in cojo_client.c cojo_cli_register.\n");
 		return -1;
 	}
+#endif
 
 	read(cli_sockfd, &msg_obj, COJO_MSG_LEN);
 	if(buf[0] == 'y')
@@ -245,7 +279,7 @@ void
 cojo_cli_sltid(int cli_sockfd)
 {	
 	cojo_msg_t msg_obj;
-	char buf[COJO_MSG_LEN] = {'\0'};
+	char *buf = msg_obj.content;
 	char tmp[COJO_MSG_LEN] = {'\0'};
 	int i;
 	int ret;
@@ -280,10 +314,15 @@ cojo_cli_sltid(int cli_sockfd)
 	
 
 	msg_obj.cojo_con_type = SLTID;
-	msg_obj.content = buf;
 
-	write(cli_sockfd, buf, sizeof(msg_obj));
+	ret = write(cli_sockfd, buf, sizeof(msg_obj));
+	if(ret == -1)
+	{
+		cojo_log("write failed in cojo_client.c cojo_cli_sltid.\n");
+		exit(1);
+	}
 
+#if 0
 	FD_ZERO(&readfds);
 	FD_SET(cli_sockfd, &readfds);
 
@@ -295,6 +334,7 @@ cojo_cli_sltid(int cli_sockfd)
 		cojo_log("select failed in cojo_client.c cojo_cli_register.\n");
 		exit(1);
 	}
+#endif
 
 	read(cli_sockfd, &msg_obj, COJO_MSG_LEN);
 	if(buf[0] == 'y')
@@ -312,7 +352,7 @@ cojo_cli_sltid(int cli_sockfd)
 			int nread;
 			testfds = readfds;
 
-			ret = select(FD_SETSIZE, &testfds, (fd_set *)0,
+			ret = select(cli_sockfd + 1, &testfds, (fd_set *)0,
 					(fd_set *)0, (struct timeval *)0);
 
 			if(ret == -1)

@@ -32,7 +32,7 @@ int main(int argc, char *argv[])
 	// init the cilent
 	cojo_init_client();
 
-	// set the address of the client
+	// 设置要连接的服务器端的 sockaddr_in
 	cojo_cli_set_addr();
 
 	// build a socket
@@ -49,6 +49,7 @@ int main(int argc, char *argv[])
 	if(ret == -1)
 	{
 		cojo_log("connect failed in cojo_client_main.c main.\n");
+		perror("client_main connect : ");
 		exit(1);
 	}
 
@@ -65,9 +66,25 @@ int main(int argc, char *argv[])
 		{
 			case 1:
 				b_reg =	cojo_cli_register(cli_sockfd);
+				if(b_reg == -1)
+				{
+					fprintf(stdout, "register failed.\n");
+				}
+				else if(b_reg == 0)
+				{
+					fprintf(stdout, "register succeed.\n");
+				}
 				break;
 			case 2:
 				b_log = cojo_cli_login(cli_sockfd);
+				if(b_log == -1)
+				{
+					fprintf(stdout, "login failed.\n");
+				}
+				else if(b_log == 0)
+				{
+					fprintf(stdout, "login succeed.\n");
+				}
 				break;
 			case 3:
 				if(b_log == 0)
@@ -103,7 +120,7 @@ static void cojo_show_menu(void)
 	while(*p != NULL)
 	{
 		printf("%s", *p);
-		(*p) ++;
+		p ++;
 	}
 }/* cojo_show_menu() */
 

@@ -3,6 +3,7 @@
  * date: 2011/07/03
  */
 
+#include <sys/select.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -94,7 +95,7 @@ void
 cojo_server_work(void)
 {
 	int cojo_server_sockfd;
-	int *cojo_client_sockfd;
+	int cojo_client_sockfd;
 	struct sockaddr_in cojo_server_addr;
 	struct sockaddr_in cojo_client_addr;
 	int cojo_server_len, cojo_client_len;
@@ -134,10 +135,13 @@ cojo_server_work(void)
 			cojo_client_len = sizeof(cojo_client_addr);
 			cojo_client_sockfd = accept(cojo_server_sockfd, 
 					(struct sockaddr *)&cojo_client_addr,
-					&cojo_client_len);
+					(socklen_t *)&cojo_client_len);
+
+			fprintf(stdout, "create cli_sockfd in server: %d\n",
+				       	cojo_client_sockfd);
 
 			ret = pthread_create(&a_thread, NULL, cojo_handle_con ,
-					(void *)cojo_client_sockfd);
+					(void *)&cojo_client_sockfd);
 			if(ret != 0)
 			{
 				cojo_log("pthread_create failed in cojo_server.c \
@@ -153,7 +157,7 @@ cojo_handle_con(void *arg)
 	int cojo_sockfd = *(int *)arg;
 	int cojo_con_sockfd;
 
-	fd_set readfds, testfds;
+	fd_set readfds;
 	
 	int ret, ret2;
 	cojo_msg_t cojo_msg_obj;
@@ -163,33 +167,54 @@ cojo_handle_con(void *arg)
 	cojo_user_t *user_obj;
 	cojo_user_online_t user_online_obj;
 
+	char *buf = cojo_msg_obj.content;
+
+#if 0
 	cojo_msg_obj.content =(char *)malloc(COJO_MSG_LEN *sizeof(char));
 	if(cojo_msg_obj.content == NULL)
 	{
 		cojo_log("malloc failed in cojo_server.c cojo_handle_con.\n");
 		exit(1);
 	}
+#endif
 
 	FD_ZERO(&readfds);
 	FD_SET(cojo_sockfd, &readfds);
 	while(1)
 	{
-		testfds = readfds;
-		ret = select(FD_SETSIZE, &testfds, (fd_set *)0,
-				(fd_set *)0, (struct timeval *)0);
-
-		if(ret == -1)
+#if 0
+		while(1)
 		{
-			cojo_log("select failed in cojo_server.c cojo_handle_con.\n");
-			exit(1);
-		}
+			FD_ZERO(&readfds);
+			FD_SET(cojo_sockfd, &readfds);
 
-		read(cojo_sockfd, &cojo_msg_obj, COJO_MSG_LEN + 4); // '4' for connect type
+			s_time.tv_sec = 3;
+			s_time.tv_usec = 500000;
+	
+			ret = select(cojo_sockfd + 1, &readfds, (fd_set *)0,
+				(fd_set *)0, &s_time);
+
+			if(ret == -1)
+			{
+				cojo_log("select failed in cojo_server.c cojo_handle_con.\n");
+				exit(1);
+			}
+			else if(ret != 0)
+			{
+				break;
+			}
+			fprintf(stdout, "select cli_sockfd: %d\n", cojo_sockfd);
+		}
+#endif
+
+		//read(cojo_sockfd, &cojo_msg_obj, COJO_MSG_LEN + 4); // '4' for connect type
+		read(cojo_sockfd, &cojo_msg_obj, 4 + COJO_MSG_LEN);
+		fprintf(stdout, "recv: %s\n", cojo_msg_obj.content);
 
 		if(cojo_msg_obj.cojo_con_type == REGISTER)
 		{
+			fprintf(stdout, "here register.\n");
 			ret = cojo_do_register(&cojo_msg_obj);
-			cojo_msg_back.content = (char *)malloc(2*sizeof(char));
 			if(ret == 0)
 			{
 				strncpy(cojo_msg_back.content, "y", 2);
@@ -200,7 +225,7 @@ cojo_handle_con(void *arg)
 			}
 			cojo_msg_back.cojo_con_type = REGISTER;
 			ret2 = write(cojo_sockfd, &cojo_msg_back,
-					sizeof(cojo_msg_back));
+					4 + strlen(cojo_msg_back.content));
 			if(ret2 == -1)
 			{
 				cojo_log("write failed in cojo_server.c\
@@ -211,7 +236,6 @@ cojo_handle_con(void *arg)
 		else if(cojo_msg_obj.cojo_con_type == LOGIN)
 		{
 			ret = cojo_do_login(&cojo_msg_obj);
-			cojo_msg_back.content = (char *)malloc(2*sizeof(char));
 			if(ret == 0)
 			{
 				strncpy(cojo_msg_back.content, "y", 2);
@@ -222,7 +246,7 @@ cojo_handle_con(void *arg)
 			}
 			cojo_msg_back.cojo_con_type = LOGIN;
 			ret2 = write(cojo_sockfd, &cojo_msg_back,
-					sizeof(cojo_msg_back));
+					4 + strlen(cojo_msg_back.content));
 			if(ret2 == -1)
 			{
 				cojo_log("write failed in cojo_server.c\
@@ -253,7 +277,6 @@ cojo_handle_con(void *arg)
 		else if(cojo_msg_obj.cojo_con_type == SLTID)
 		{
 			cojo_con_sockfd = cojo_do_sltid(&cojo_msg_obj);
-			cojo_msg_back.content = (char *)malloc(2*sizeof(char));
 			if(cojo_con_sockfd != -1)				
 			{
 				strncpy(cojo_msg_back.content, "y", 2);
@@ -264,7 +287,7 @@ cojo_handle_con(void *arg)
 			}
 			cojo_msg_back.cojo_con_type = SLTID;
 			ret2 = write(cojo_sockfd, &cojo_msg_back,
-					sizeof(cojo_msg_back));
+					4 + strlen(cojo_msg_back.content));
 			if(ret2 == -1)
 			{
 				cojo_log("write failed in cojo_server.c\
@@ -323,6 +346,7 @@ cojo_do_login(cojo_msg_t *cojo_msg_obj)
 	cojo_user_t *user_obj = NULL;
 	cojo_user_t *user_out = NULL;
 
+	printf("in login: %s\n", cojo_msg_obj->content);
 	user_obj = cojo_get_user_from_lnspa(cojo_msg_obj->content);
 	if(user_obj == NULL)
 	{
@@ -339,7 +363,8 @@ cojo_do_login(cojo_msg_t *cojo_msg_obj)
 		return -1;
 	}
 
-	if(user_out->cojo_user_pwd != user_obj->cojo_user_pwd)
+	printf("out: %s\n", user_out->cojo_user_pwd);
+	if(strcmp(user_out->cojo_user_pwd, user_obj->cojo_user_pwd) != 0)
 	{
 		cojo_log("pwd wrong in cojo_do_login\n");
 		return -1;
@@ -419,7 +444,7 @@ cojo_comn(int cojo_sockfd, int cojo_con_sockfd)
 					else
 					{
 						read(fd, msg, COJO_MSG_LEN);
-						write(cojo_con_sockfd, msg, COJO_MSG_LEN);
+						write(cojo_con_sockfd, msg, strlen(msg));
 					}
 				}
 				else
@@ -436,7 +461,7 @@ cojo_comn(int cojo_sockfd, int cojo_con_sockfd)
 					else
 					{
 						read(fd, msg, COJO_MSG_LEN);
-						write(cojo_sockfd, msg, COJO_MSG_LEN);
+						write(cojo_sockfd, msg, strlen(msg));
 					}
 				}
 			}
@@ -455,7 +480,7 @@ cojo_del_userol_byfd(int fd)
 	if(ptr == NULL)
 	{
 		cojo_log("user ol list in null, error occured.\n");
-		exit(1);
+		return -1;
 	}
 
 	pos = ptr;
@@ -494,7 +519,7 @@ cojo_rel_userol_byfd(int fd)
 	if(ptr == NULL)
 	{
 		cojo_log("user ol list in null, error occured.\n");
-		exit(1);
+		return -1;
 	}
 
 	while(ptr != NULL)

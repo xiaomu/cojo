@@ -23,14 +23,14 @@ enum cojo_con_type_def
 };
 typedef enum cojo_con_type_def cojo_con_type_t;
 
+#define COJO_MSG_LEN 100
 struct cojo_msg
 {
 	cojo_con_type_t cojo_con_type;
-	char *content;
+	char content[COJO_MSG_LEN];
 };
 typedef struct cojo_msg cojo_msg_t;
 
-#define COJO_MSG_LEN 100
 
 void cojo_init_server(void);
 int cojo_set_addr(void);

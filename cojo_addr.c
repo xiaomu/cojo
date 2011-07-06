@@ -8,16 +8,15 @@
 #include "cojo_log.h"
 #include "cojo_addr.h"
 
+// 获得本机可用的IP地址
 cojo_addr_item_t *
 cojo_get_addr(void)
 {
 	struct ifaddrs *ifAddrStruct = NULL;
 	struct ifaddrs *ifa = NULL;
-	cojo_addr_item_t *cojo_addr = NULL;
-	cojo_addr_item_t *cojo_addr_temp = NULL;
-	cojo_addr_item_t *cojo_addr_ptr = NULL;
-
-	cojo_addr_ptr = cojo_addr;
+	cojo_addr_item_t *cojo_addr = NULL;	// 跟踪链表头部
+	cojo_addr_item_t *cojo_addr_temp = NULL;	// 指向新分配节点
+	cojo_addr_item_t *cojo_addr_ptr = NULL;		// 跟踪链表尾部
 
 	getifaddrs(&ifAddrStruct);
 	for(ifa = ifAddrStruct; ifa != NULL; ifa=ifa->ifa_next)
@@ -40,6 +39,7 @@ cojo_get_addr(void)
 			if(cojo_addr_ptr == NULL)
 			{
 				cojo_addr_ptr = cojo_addr_temp;
+				cojo_addr = cojo_addr_ptr;
 			}
 			else
 			{
@@ -53,4 +53,4 @@ cojo_get_addr(void)
 		freeifaddrs(ifAddrStruct);
 
 		return cojo_addr;
-}
+}/* cojo_get_addr() */
