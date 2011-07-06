@@ -250,7 +250,7 @@ cojo_get_user_from_lnspa(const char *cojo_lnspa)
 		cojo_log("malloc failed in cojo_userdb.c cojo_get_user_from_lnspa().\n");
 		return NULL;
 	}
-	memset(user_obj, '\0', sizeof(user_obj));
+	memset(user_obj, '\0', sizeof(cojo_user_t));
 			
 	// get the user's id
 	i = 0;

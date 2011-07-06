@@ -16,6 +16,7 @@ int cojo_cli_register(int cli_sockfd);
 int cojo_cli_login(int cli_sockfd);
 void cojo_cli_sltid(int cli_sockfd);
 void *cojo_cli_sltid_write(void *arg);
+void cojo_cli_comn(int cli_sockfd);
 
 
 #endif

@@ -20,6 +20,7 @@
 #include "cojo_addr.h"
 #include "cojo_log.h"
 
+//  初始化服务器端需要的一些信息， 由全局变量 cojo_server 记录
 void
 cojo_init_server(void)
 {
@@ -34,6 +35,7 @@ cojo_init_server(void)
 
 }/* cojo_init_server() */
 
+//设置服务器端用来监听的 sockaddr_in
 int
 cojo_set_addr(void)
 {
@@ -91,6 +93,8 @@ cojo_set_addr(void)
 	return 0;
 }/* cojo_set_addr() */ 
 
+
+// 监听和与 client 建立连接
 void
 cojo_server_work(void)
 {
@@ -126,7 +130,7 @@ cojo_server_work(void)
 		if(ret < 1)
 		{
 			cojo_log("select failed.\n");
-			exit(1);
+			return;
 		}
 
 		if(cojo_server.cojo_user_online_num <= 9)
@@ -151,6 +155,8 @@ cojo_server_work(void)
 	}
 }/* cojo_server_work() */
 
+
+// server 与已经连接的 client 通过sock_fd 进行交互
 void *
 cojo_handle_con(void *arg)
 {
@@ -167,46 +173,11 @@ cojo_handle_con(void *arg)
 	cojo_user_t *user_obj;
 	cojo_user_online_t user_online_obj;
 
-	char *buf = cojo_msg_obj.content;
-
-#if 0
-	cojo_msg_obj.content =(char *)malloc(COJO_MSG_LEN *sizeof(char));
-	if(cojo_msg_obj.content == NULL)
-	{
-		cojo_log("malloc failed in cojo_server.c cojo_handle_con.\n");
-		exit(1);
-	}
-#endif
 
 	FD_ZERO(&readfds);
 	FD_SET(cojo_sockfd, &readfds);
 	while(1)
 	{
-#if 0
-		while(1)
-		{
-			FD_ZERO(&readfds);
-			FD_SET(cojo_sockfd, &readfds);
-
-			s_time.tv_sec = 3;
-			s_time.tv_usec = 500000;
-	
-			ret = select(cojo_sockfd + 1, &readfds, (fd_set *)0,
-				(fd_set *)0, &s_time);
-
-			if(ret == -1)
-			{
-				cojo_log("select failed in cojo_server.c cojo_handle_con.\n");
-				exit(1);
-			}
-			else if(ret != 0)
-			{
-				break;
-			}
-			fprintf(stdout, "select cli_sockfd: %d\n", cojo_sockfd);
-		}
-#endif
-
 		//read(cojo_sockfd, &cojo_msg_obj, COJO_MSG_LEN + 4); // '4' for connect type
 		read(cojo_sockfd, &cojo_msg_obj, 4 + COJO_MSG_LEN);
 		fprintf(stdout, "recv: %s\n", cojo_msg_obj.content);
@@ -225,12 +196,12 @@ cojo_handle_con(void *arg)
 			}
 			cojo_msg_back.cojo_con_type = REGISTER;
 			ret2 = write(cojo_sockfd, &cojo_msg_back,
-					4 + strlen(cojo_msg_back.content));
+					4 + strlen(cojo_msg_back.content) + 1);
 			if(ret2 == -1)
 			{
 				cojo_log("write failed in cojo_server.c\
 						cojo_handle_con.\n");
-				exit(1);
+				return;
 			}
 		}
 		else if(cojo_msg_obj.cojo_con_type == LOGIN)
@@ -246,12 +217,12 @@ cojo_handle_con(void *arg)
 			}
 			cojo_msg_back.cojo_con_type = LOGIN;
 			ret2 = write(cojo_sockfd, &cojo_msg_back,
-					4 + strlen(cojo_msg_back.content));
+					4 + strlen(cojo_msg_back.content) + 1);
 			if(ret2 == -1)
 			{
 				cojo_log("write failed in cojo_server.c\
 						cojo_handle_con.\n");
-				exit(1);
+				return;
 			}
 
 			bool_login = 1;
@@ -287,7 +258,16 @@ cojo_handle_con(void *arg)
 			}
 			cojo_msg_back.cojo_con_type = SLTID;
 			ret2 = write(cojo_sockfd, &cojo_msg_back,
-					4 + strlen(cojo_msg_back.content));
+					4 + strlen(cojo_msg_back.content) + 1);
+			if(ret2 == -1)
+			{
+				cojo_log("write failed in cojo_server.c\
+						cojo_handle_con.\n");
+				exit(1);
+			}
+			
+			ret2 = write(cojo_con_sockfd, &cojo_msg_back,
+					4 + strlen(cojo_msg_back.content) + 1);
 			if(ret2 == -1)
 			{
 				cojo_log("write failed in cojo_server.c\
@@ -423,7 +403,7 @@ cojo_comn(int cojo_sockfd, int cojo_con_sockfd)
 		if(ret == -1)
 		{
 			cojo_log("selct failed in cojo_server.c cojo_comn.\n");
-			exit(1);
+			return;
 		}
 
 		for(fd = 0; fd < FD_SETSIZE; fd++)
@@ -444,7 +424,7 @@ cojo_comn(int cojo_sockfd, int cojo_con_sockfd)
 					else
 					{
 						read(fd, msg, COJO_MSG_LEN);
-						write(cojo_con_sockfd, msg, strlen(msg));
+						write(cojo_con_sockfd, msg, strlen(msg) + 1);
 					}
 				}
 				else
@@ -461,7 +441,7 @@ cojo_comn(int cojo_sockfd, int cojo_con_sockfd)
 					else
 					{
 						read(fd, msg, COJO_MSG_LEN);
-						write(cojo_sockfd, msg, strlen(msg));
+						write(cojo_sockfd, msg, strlen(msg) + 1);
 					}
 				}
 			}
@@ -470,6 +450,7 @@ cojo_comn(int cojo_sockfd, int cojo_con_sockfd)
 	}
 } /* cojo_comn() */
 
+// 通过fd删除在线表中一个用户
 int
 cojo_del_userol_byfd(int fd)
 {
@@ -509,7 +490,7 @@ cojo_del_userol_byfd(int fd)
 } /* cojo_del_userol_byfd() */
 
 
-// release a user by fd
+// 通过fd使在线表中一用户状态为 不正在通信 
 int
 cojo_rel_userol_byfd(int fd)
 {

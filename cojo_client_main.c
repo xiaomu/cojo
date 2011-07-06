@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <unistd.h>
+#include <sys/select.h>
 #include <stdio.h>
 
 #include "cojo_client.h"
@@ -29,6 +30,8 @@ int main(int argc, char *argv[])
 	int ret;
 	int choice;
 
+	fd_set readfds;
+	struct timeval s_time;
 	// init the cilent
 	cojo_init_client();
 
@@ -62,6 +65,20 @@ int main(int argc, char *argv[])
 
 	while(1)
 	{
+		if(b_log == 0)
+		{
+			s_time.tv_sec = 2;
+			s_time.tv_usec = 500000;
+			FD_ZERO(&readfds);
+			FD_SET(cli_sockfd, &readfds);
+			ret = select(cli_sockfd + 1, &readfds, (fd_set *)0,
+					(fd_set *)0, &s_time);
+			if((ret != 0) && (ret != -1))
+			{
+				cojo_cli_comn(cli_sockfd);
+			}
+		}
+				
 		switch(choice)
 		{
 			case 1:
@@ -104,12 +121,9 @@ int main(int argc, char *argv[])
 		}
 		
 		cojo_show_menu();
-		fprintf(stdout, "input your choice.\n");
+		fprintf(stdout, "input your choice : ");
 		fscanf(stdin, "%d", &choice);
 	}
-
-	
-	
 }
 
 
